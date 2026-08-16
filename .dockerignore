@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# Environment and secrets
+.env
+.env.development
+.env.production
+.env.*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+ENV/
+env/
+
+# Build and distributions
+dist/
+build/
+*.egg-info/
+
+# Docker files
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Documentation and metadata
+README.md
+LICENSE
+.github/
+.vscode/
+.idea/
