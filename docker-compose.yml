@@ -19,15 +19,15 @@ services:
 
   web:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     restart: always
     ports:
       - "8000:8000"
     volumes:
-      - .:/app
+      - ./backend:/app
     env_file:
-      - .env
+      - ./backend/.env
     depends_on:
       - db
       - redis
@@ -35,15 +35,15 @@ services:
 
   worker:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     restart: always
     volumes:
-      - .:/app
+      - ./backend:/app
     environment:
       - PYTHONPATH=/app
     env_file:
-      - .env
+      - ./backend/.env
     depends_on:
       - db
       - redis
