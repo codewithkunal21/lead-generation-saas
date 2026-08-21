@@ -1,3 +1,10 @@
+import importlib
+import sys
+
+# Support imports when Vercel loads this module as backend.src.app.main.
+if __package__.startswith("backend."):
+    sys.modules.setdefault("src", importlib.import_module("backend.src"))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.app.core.config import settings
