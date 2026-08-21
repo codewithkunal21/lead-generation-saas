@@ -12,7 +12,8 @@ export const LoginPage: React.FC = () => {
 
   // Support pre-filled email/username passed from register page or state
   const initialEmail = (location.state as { email?: string })?.email || '';
-
+  
+  // mmx
   const [usernameOrEmail, setUsernameOrEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -174,6 +175,9 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* <div> */}
+        {/*  */}
+      {/* </div> */}
     </div>
-  );
-};
+  ) ;
+} ;
