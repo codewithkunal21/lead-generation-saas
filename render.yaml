@@ -75,7 +75,7 @@ services:
       # CORS — set to your actual Vercel frontend URL.
       # To change the Vercel URL later: only update this env var — no code change needed.
       - key: BACKEND_CORS_ORIGINS
-        value: https://lead-generation-saas-ixyh.vercel.app
+        value: https://lead-generation-saas-six.vercel.app
 
       # Initial superuser — CHANGE FIRST_SUPERUSER_PASSWORD in the Render dashboard.
       # Do NOT leave it as the placeholder value below.
