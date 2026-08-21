@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { User, ShieldCheck, Server, Key, CheckCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
 import { apiClient } from '../api/client';
+
+// Resolve the backend root URL from the apiClient base URL.
+// apiClient.defaults.baseURL is set to `${VITE_API_BASE_URL}/api/v1`, so strip the /api/v1 suffix.
+const API_V1_BASE: string = apiClient.defaults.baseURL ?? 'http://localhost:8000/api/v1';
+const BACKEND_BASE_URL: string = API_V1_BASE.replace(/\/api\/v1\/?$/, '');
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuth();
@@ -10,7 +16,8 @@ export const SettingsPage: React.FC = () => {
   const checkHealth = async () => {
     setApiHealth('checking');
     try {
-      const res = await apiClient.get('/health', { baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000' });
+      // /health is at the root of the backend, not under /api/v1
+      const res = await axios.get(`${BACKEND_BASE_URL}/health`, { timeout: 8000 });
       if (res.data?.status === 'healthy' || res.status === 200) {
         setApiHealth('healthy');
       } else {
@@ -25,7 +32,7 @@ export const SettingsPage: React.FC = () => {
     checkHealth();
   }, []);
 
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+  const apiBaseUrl = BACKEND_BASE_URL;
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -113,12 +120,12 @@ export const SettingsPage: React.FC = () => {
           <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-100">
             <span className="text-xs font-semibold text-slate-600">Swagger API Docs:</span>
             <a
-              href={`${apiBaseUrl}/docs`}
+              href={`${apiBaseUrl}/api/v1/docs`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs font-semibold text-brand-600 hover:underline"
             >
-              {apiBaseUrl}/docs ↗
+              {apiBaseUrl}/api/v1/docs ↗
             </a>
           </div>
         </div>

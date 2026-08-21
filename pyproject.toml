@@ -1,7 +1,10 @@
 [project]
 name = "lead-generation-saas-root"
 version = "0.1.0"
+description = "LeadPulse Lead Generation SaaS - monorepo root"
 requires-python = ">=3.12"
 
-[tool.vercel]
-entrypoint = "backend.src.app.main:app"
+# NOTE: The FastAPI backend is deployed as a Dockerized container service
+# (Render / Railway / Fly.io), NOT as a Vercel serverless function.
+# Frontend (React/Vite) is deployed on Vercel separately.
+# See backend/Dockerfile and render.yaml for backend deployment.

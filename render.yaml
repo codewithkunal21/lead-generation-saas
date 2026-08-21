@@ -1,0 +1,144 @@
+# =============================================================================
+# Render.com Deployment Configuration — LeadPulse SaaS Backend
+# =============================================================================
+# This file defines the backend web service and Celery worker for Render.
+#
+# DEPLOYMENT STEPS:
+#   1. Push this repository to GitHub
+#   2. Go to https://render.com → New → Blueprint (uses this file)
+#      OR manually create services as described below
+#   3. Add a PostgreSQL database on Render (free tier: Render PostgreSQL)
+#   4. Add a Redis service on Render (free tier: Render Redis)
+#   5. In the Render dashboard, manually set these environment variables:
+#        - FIRST_SUPERUSER_PASSWORD  (strong password for the admin account)
+#        - POSTGRES_PASSWORD         (if not using DATABASE_URL link below)
+#   6. Deploy — Render will build the Docker image and run start.sh
+#   7. Copy the backend service URL (e.g. https://leadpulse-api.onrender.com)
+#   8. In Vercel → Project Settings → Environment Variables, set:
+#        VITE_API_BASE_URL = https://leadpulse-api.onrender.com
+#   9. Redeploy the Vercel frontend
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Web Service — FastAPI Application
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: leadpulse-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    # Render injects $PORT automatically; start.sh reads it
+    healthCheckPath: /health
+    autoDeploy: true
+
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+
+      - key: PROJECT_NAME
+        value: LeadPulse SaaS Backend
+
+      # Security — Render auto-generates a cryptographically secure random value
+      - key: SECRET_KEY
+        generateValue: true
+
+      - key: ALGORITHM
+        value: HS256
+
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 11520
+
+      # Database — Render provides DATABASE_URL from the linked PostgreSQL service.
+      # Link your Render PostgreSQL database to this service in the dashboard.
+      # Render provides postgres:// URLs; config.py auto-converts to postgresql+asyncpg://
+      - key: DATABASE_URL
+        fromDatabase:
+          name: leadpulse-db
+          property: connectionString
+
+      # Redis — Render provides REDIS_URL from the linked Redis service.
+      # Link your Render Redis service to this service in the dashboard.
+      - key: REDIS_URL
+        fromService:
+          name: leadpulse-redis
+          type: redis
+          property: connectionString
+
+      # Celery inherits Redis URLs from REDIS_URL (assembled by config.py validators)
+      # Only set these explicitly if using a different broker/backend from Redis.
+      # - key: CELERY_BROKER_URL
+      #   fromService: ...
+      # - key: CELERY_RESULT_BACKEND
+      #   fromService: ...
+
+      # CORS — set to your actual Vercel frontend URL.
+      # To change the Vercel URL later: only update this env var — no code change needed.
+      - key: BACKEND_CORS_ORIGINS
+        value: https://lead-generation-saas-ixyh.vercel.app
+
+      # Initial superuser — CHANGE FIRST_SUPERUSER_PASSWORD in the Render dashboard.
+      # Do NOT leave it as the placeholder value below.
+      - key: FIRST_SUPERUSER_EMAIL
+        value: admin@example.com
+      - key: FIRST_SUPERUSER_PASSWORD
+        value: CHANGE_ME_IN_RENDER_DASHBOARD_BEFORE_DEPLOYING
+
+  # ---------------------------------------------------------------------------
+  # Celery Worker — Background Scraping Jobs
+  # Runs as a separate process; shares the same Docker image as the web service.
+  # ---------------------------------------------------------------------------
+  - type: worker
+    name: leadpulse-worker
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    # Override CMD to run Celery instead of start.sh
+    startCommand: celery -A src.app.core.celery_app worker --loglevel=info --concurrency=2
+
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+
+      # Must share the same SECRET_KEY as the web service
+      - key: SECRET_KEY
+        fromService:
+          name: leadpulse-api
+          type: web
+          envVarKey: SECRET_KEY
+
+      - key: DATABASE_URL
+        fromDatabase:
+          name: leadpulse-db
+          property: connectionString
+
+      - key: REDIS_URL
+        fromService:
+          name: leadpulse-redis
+          type: redis
+          property: connectionString
+
+      - key: FIRST_SUPERUSER_EMAIL
+        value: admin@example.com
+      - key: FIRST_SUPERUSER_PASSWORD
+        value: CHANGE_ME_IN_RENDER_DASHBOARD_BEFORE_DEPLOYING
+
+      # CORS is not needed on the Celery worker (it doesn't handle HTTP requests)
+      # but PROJECT_NAME is useful for log identification
+      - key: PROJECT_NAME
+        value: LeadPulse SaaS Backend
+
+# ---------------------------------------------------------------------------
+# Databases (Render-managed)
+# ---------------------------------------------------------------------------
+databases:
+  - name: leadpulse-db
+    databaseName: saas_db
+    user: postgres
+    plan: free   # Upgrade to starter/standard for production workloads
+
+# ---------------------------------------------------------------------------
+# Redis (Render-managed)
+# NOTE: Render Redis is configured in the dashboard.
+# The REDIS_URL env var above references the Redis service connection string.
+# ---------------------------------------------------------------------------

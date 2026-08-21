@@ -1,22 +1,42 @@
 services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database
+  # ---------------------------------------------------------------------------
   db:
     image: postgres:16-alpine
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_dev_change_me}
       POSTGRES_DB: ${POSTGRES_DB:-saas_db}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-saas_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
+  # ---------------------------------------------------------------------------
+  # Redis (Broker & Celery Result Backend)
+  # ---------------------------------------------------------------------------
   redis:
     image: redis:7-alpine
     restart: always
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
+  # ---------------------------------------------------------------------------
+  # FastAPI Web Service
+  # ---------------------------------------------------------------------------
   web:
     build:
       context: ./backend
@@ -24,42 +44,57 @@ services:
     restart: always
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend:/app
     env_file:
       - ./backend/.env
     depends_on:
-      - db
-      - redis
-    command: sh ./start.sh
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: sh start.sh
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
+  # ---------------------------------------------------------------------------
+  # Celery Worker (background scraping jobs)
+  # Runs as a SEPARATE process — must NOT be merged into the web service.
+  # ---------------------------------------------------------------------------
   worker:
     build:
       context: ./backend
       dockerfile: Dockerfile
     restart: always
-    volumes:
-      - ./backend:/app
-    environment:
-      - PYTHONPATH=/app
     env_file:
       - ./backend/.env
     depends_on:
-      - db
-      - redis
-    command: celery -A src.app.core.celery_app worker --loglevel=info
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # Worker does not run start.sh (no migrations/superuser needed again)
+    command: celery -A src.app.core.celery_app worker --loglevel=info --concurrency=2
 
+  # ---------------------------------------------------------------------------
+  # Frontend (local development only — Vercel handles production)
+  # VITE_API_BASE_URL must be passed as a BUILD ARG because Vite bakes it into
+  # the bundle at build time — it is NOT a runtime environment variable.
+  # ---------------------------------------------------------------------------
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: "http://localhost:8000"
     restart: always
     ports:
       - "5173:80"
-    environment:
-      - VITE_API_BASE_URL=http://localhost:8000
     depends_on:
-      - web
+      web:
+        condition: service_healthy
 
 volumes:
   postgres_data:

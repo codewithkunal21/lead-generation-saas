@@ -1,1 +1,6 @@
--r backend/requirements.txt
+# Root-level requirements.txt
+# The backend Python dependencies live in backend/requirements.txt
+# This file is intentionally empty at the root level.
+# The backend is deployed as a Docker container — see backend/Dockerfile.
+# Do NOT add -r backend/requirements.txt here; it causes Vercel to attempt
+# a Python serverless deployment of the FastAPI backend, which is incorrect.

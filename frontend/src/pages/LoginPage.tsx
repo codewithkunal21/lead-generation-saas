@@ -42,14 +42,14 @@ export const LoginPage: React.FC = () => {
       });
       showToast('Welcome back! Login successful.', 'success');
       navigate('/dashboard');
-    } catch (err: any) {
-      const detail = err.response?.data?.detail;
-      let msg = 'Incorrect username/email or password.';
-      if (typeof detail === 'string') {
-        msg = detail;
-      } else if (Array.isArray(detail) && detail.length > 0) {
-        msg = detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ');
-      }
+    } catch (err: unknown) {
+      // AuthContext.login() throws a plain Error with a descriptive message.
+      // It handles AxiosError → plain Error conversion internally, so we
+      // access .message here, NOT .response.data.detail.
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Incorrect username/email or password.';
       setError(msg);
       showToast(msg, 'error');
     } finally {
