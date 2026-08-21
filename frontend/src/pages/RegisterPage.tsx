@@ -21,6 +21,12 @@ export const RegisterPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const trimmedUsername = username.trim();
+    if (trimmedUsername.length < 3) {
+      setError('Username must be at least 3 characters in length.');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match. Please verify your password entry.');
       return;
@@ -37,17 +43,21 @@ export const RegisterPage: React.FC = () => {
     try {
       await register({
         email: email.trim(),
-        username: username.trim(),
+        username: trimmedUsername,
         full_name: fullName.trim() || undefined,
         password,
       });
 
       showToast('Account created successfully! Please sign in.', 'success');
-      navigate('/login');
+      navigate('/login', { state: { email: email.trim() } });
     } catch (err: any) {
-      const msg =
-        err.response?.data?.detail ||
-        'Registration failed. Username or Email may already exist.';
+      const detail = err.response?.data?.detail;
+      let msg = 'Registration failed. Username or Email may already exist.';
+      if (typeof detail === 'string') {
+        msg = detail;
+      } else if (Array.isArray(detail) && detail.length > 0) {
+        msg = detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ');
+      }
       setError(msg);
       showToast(msg, 'error');
     } finally {
@@ -110,6 +120,7 @@ export const RegisterPage: React.FC = () => {
                 <input
                   type="text"
                   required
+                  minLength={3}
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="alex_dev"

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles, ArrowRight, Lock, User, AlertCircle, Loader2 } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Sparkles, ArrowRight, Lock, User, AlertCircle, Loader2, KeyRound } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -8,11 +8,21 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [usernameOrEmail, setUsernameOrEmail] = useState('');
+  // Support pre-filled email/username passed from register page or state
+  const initialEmail = (location.state as { email?: string })?.email || '';
+
+  const [usernameOrEmail, setUsernameOrEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fillDemoAdmin = () => {
+    setUsernameOrEmail('admin@example.com');
+    setPassword('admin_super_secure_password');
+    setError(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,9 +42,13 @@ export const LoginPage: React.FC = () => {
       showToast('Welcome back! Login successful.', 'success');
       navigate('/dashboard');
     } catch (err: any) {
-      const msg =
-        err.response?.data?.detail ||
-        'Failed to log in. Please check your credentials and try again.';
+      const detail = err.response?.data?.detail;
+      let msg = 'Incorrect username/email or password.';
+      if (typeof detail === 'string') {
+        msg = detail;
+      } else if (Array.isArray(detail) && detail.length > 0) {
+        msg = detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ');
+      }
       setError(msg);
       showToast(msg, 'error');
     } finally {
@@ -60,12 +74,35 @@ export const LoginPage: React.FC = () => {
 
         {/* Login Card */}
         <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-100">
+          {/* Quick Demo Credentials Assistant */}
+          <div className="mb-6 p-3.5 rounded-xl bg-indigo-50/80 border border-indigo-100 flex items-center justify-between text-indigo-900 text-xs">
+            <div className="flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-brand-600 shrink-0" />
+              <span>
+                Testing app? <strong className="font-semibold">Demo Admin:</strong> admin@example.com
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={fillDemoAdmin}
+              className="px-2.5 py-1 bg-white hover:bg-indigo-100/60 text-brand-600 font-semibold border border-indigo-200 rounded-lg shadow-sm transition-all text-xs shrink-0"
+            >
+              Fill Demo Admin
+            </button>
+          </div>
+
           {error && (
             <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 text-rose-900 text-sm">
               <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold">Authentication Error</p>
                 <p className="text-rose-700 text-xs mt-0.5">{error}</p>
+                <p className="text-slate-500 text-xs mt-1.5">
+                  Don't have an account?{' '}
+                  <Link to="/register" className="text-brand-600 font-semibold underline">
+                    Click here to Create an Account
+                  </Link>
+                </p>
               </div>
             </div>
           )}
@@ -82,7 +119,7 @@ export const LoginPage: React.FC = () => {
                   required
                   value={usernameOrEmail}
                   onChange={(e) => setUsernameOrEmail(e.target.value)}
-                  placeholder="admin@saas.local or admin"
+                  placeholder="admin@example.com or username"
                   className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 transition-all"
                 />
               </div>
