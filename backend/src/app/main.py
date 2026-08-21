@@ -11,6 +11,7 @@ app = FastAPI(
 
 # Enable CORS using settings configured origins and local development regex fallback
 allowed_origins = [str(origin).rstrip("/") for origin in settings.BACKEND_CORS_ORIGINS] if settings.BACKEND_CORS_ORIGINS else []
+allowed_origins.append("https://lead-generation-saas-kzzm.vercel.app")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,

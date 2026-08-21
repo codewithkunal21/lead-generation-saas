@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const baseURL = import.meta.env.VITE_API_BASE_URL || (
+  import.meta.env.PROD
+    ? 'https://lead-generation-saas-vqay.vercel.app'
+    : 'http://localhost:8000'
+);
 
 export const apiClient = axios.create({
   baseURL: `${baseURL.replace(/\/$/, '')}/api/v1`,
