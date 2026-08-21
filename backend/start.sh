@@ -33,4 +33,5 @@ echo "Creating initial superuser..."
 python src/app/create_superuser.py
 
 echo "Starting application..."
+echo "Hello Kunal"
 exec uvicorn src.app.main:app --host 0.0.0.0 --port 8000 --reload
